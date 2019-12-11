@@ -1,0 +1,5 @@
+{
+  "LogFilePath": "C:\\prj\\nginx-log-analytics\\access.log",
+  "CrawlerUserAgentsFilePath": "ingore-user-agents.txt",
+  "ExcludeContentFilePath": "not-content-list.txt"
+}
