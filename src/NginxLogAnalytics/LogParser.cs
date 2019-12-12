@@ -20,9 +20,13 @@ namespace NginxLogAnalytics
         public async Task<List<LogItem>> ParseAsync(CancellationToken cancellationToken = new CancellationToken())
         {
             List<LogItem> items = new List<LogItem>();
-            foreach (var line in await File.ReadAllLinesAsync(_path, cancellationToken))
+            var files = Directory.GetFiles(_path, "access.log*", SearchOption.TopDirectoryOnly);
+            foreach (var file in files)
             {
-                items.Add(ProcessLine(line));
+                foreach (var line in await File.ReadAllLinesAsync(file, cancellationToken))
+                {
+                    items.Add(ProcessLine(line));
+                }
             }
 
             return items;

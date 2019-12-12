@@ -5,7 +5,7 @@ namespace NginxLogAnalytics
 {
     public class Config
     {
-        public string LogFilePath { get; set; }
+        public string LogFilesFolderPath { get; set; }
         public string CrawlerUserAgentsFilePath { get; set; }
         public string ExcludeContentFilePath { get; set; }
 
