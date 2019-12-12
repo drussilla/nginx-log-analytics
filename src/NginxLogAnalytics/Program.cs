@@ -22,16 +22,22 @@ namespace NginxLogAnalytics
             var items = parser.ParseAsync(CancellationToken.None).Result;
 
             var contentNotCrawlers = items
-                .Where(x => !IsCrawler(x) && IsPages(x) && (int)x.ResponseCode < 400 && x.ResponseCode != HttpStatusCode.Moved).ToList();
+                .Where(x => 
+                    !IsCrawler(x)
+                    && IsPages(x) 
+                    && (int)x.ResponseCode < 400 && x.ResponseCode != HttpStatusCode.Moved
+                    && x.Referrer != "https://druss.co/xmlrpc.php").ToList();
 
             var notFoundItems = items
                 .Count(x => x.ResponseCode == HttpStatusCode.NotFound);
             var crawlers = items.Count(IsCrawler);
 
-            Console.WriteLine($"Total: {items.Count}");
-            Console.WriteLine($"Crawlers: {crawlers}");
-            Console.WriteLine($"404: {notFoundItems}");
-            Console.WriteLine($"Content: {contentNotCrawlers.Count}");
+            Console.Write($"Total: {items.Count} Crawlers: ");
+            Write(crawlers.ToString(), ConsoleColor.DarkYellow);
+            Console.Write(" 404: ");
+            Write(notFoundItems.ToString(), ConsoleColor.DarkRed);
+            Console.Write(" Content: ");
+            WriteLine(contentNotCrawlers.Count.ToString(), ConsoleColor.DarkGreen);
 
             Console.WriteLine();
 
@@ -41,17 +47,51 @@ namespace NginxLogAnalytics
 
             ShowByWeek(contentNotCrawlers);
 
-            Console.WriteLine("-- Today --");
+            Console.WriteLine("-- Today's Top 10 --");
             var result = contentNotCrawlers
                 .Where(x => x.Time.Date == DateTime.UtcNow.Date)
                 .GroupBy(x => x.NormalizedRequestUrl)
                 .Select(x => new { Url = x.Key, Count = x.Count(), LogItems = x})
-                .OrderByDescending(x => x.Count);
+                .OrderByDescending(x => x.Count)
+                .Take(10);
 
             foreach (var item in result)
             {
                 Console.WriteLine($"{item.Count} - {item.Url}");
             }
+
+            Console.WriteLine();
+            //Referrers(contentNotCrawlers);
+        }
+
+        private static void Referrers(List<LogItem> contentNotCrawlers)
+        {
+            Console.WriteLine("-- Referrers --");
+            var referrers = contentNotCrawlers
+                .GroupBy(x => x.Referrer)
+                .Select(x => new {Referrer = x.Key, Count = x.Count()})
+                .OrderByDescending(x => x.Count).ToList();
+
+            foreach (var referrer in referrers)
+            {
+                Console.WriteLine($"{referrer.Count} - {referrer.Referrer}");
+            }
+        }
+
+        private static void Write(string text, ConsoleColor color)
+        {
+            var defColor = Console.ForegroundColor;
+            Console.ForegroundColor = color;
+            Console.Write(text);
+            Console.ForegroundColor = defColor;
+        }
+
+        private static void WriteLine(string text, ConsoleColor color)
+        {
+            var defColor = Console.ForegroundColor;
+            Console.ForegroundColor = color;
+            Console.WriteLine(text);
+            Console.ForegroundColor = defColor;
         }
 
         private static void Today(List<LogItem> contentNotCrawlers)
