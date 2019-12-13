@@ -11,7 +11,7 @@ namespace NginxLogAnalytics
 {
     class Program
     {
-        static void Main()
+        static void Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
             var config = Config.Load("config.json");
@@ -20,6 +20,12 @@ namespace NginxLogAnalytics
             
             var parser = new LogParser(config.LogFilesFolderPath);
             var items = parser.ParseAsync(CancellationToken.None).Result;
+
+            if (args.Length == 1)
+            {
+                ShowUrlDetails(items, args[0]);
+                return;
+            }
 
             var contentNotCrawlers = items
                 .Where(x => 
@@ -64,6 +70,83 @@ namespace NginxLogAnalytics
             //Referrers(contentNotCrawlers);
         }
 
+        private static void ShowUrlDetails(List<LogItem> items, string url)
+        {
+            Console.WriteLine();
+            Console.WriteLine("Details: " + url);
+            var filtered = items.Where(x => x.NormalizedRequestUrl.Equals(url, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            var crawlers = filtered.Where(IsCrawler).ToList();
+            var notCrawlers = filtered.Where(x => !IsCrawler(x)).ToList();
+            Console.Write($"Total: {filtered.Count}");
+            Write($" Crawlers: {crawlers.Count}", ConsoleColor.DarkYellow);
+            Write($" Users: {notCrawlers.Count}", ConsoleColor.DarkGreen);
+
+            var countPerResponseCode = notCrawlers.GroupBy(x => x.ResponseCode)
+                .Select(x => new {Response = x.Key, Count = x.Count()})
+                .OrderByDescending(x => x.Count)
+                .ToList();
+
+            Console.WriteLine();
+            Console.WriteLine("-- Response codes --");
+            foreach (var item in countPerResponseCode)
+            {
+                var color = ConsoleColor.DarkGreen;
+                if ((int) item.Response >= 300)
+                {
+                    color = ConsoleColor.DarkYellow;
+                } 
+                if ((int) item.Response >= 400)
+                {
+                    color = ConsoleColor.DarkCyan;
+                }
+                if ((int) item.Response >= 500)
+                {
+                    color = ConsoleColor.DarkRed;
+                }
+
+                Write($"{(int)item.Response}", color);
+                Console.Write($" {item.Count}; ");
+            }
+            Console.WriteLine();
+
+            var groupByReferrer = notCrawlers.GroupBy(x => x.Referrer)
+                .Select(x => new {Referrer = x.Key, Count = x.Count()})
+                .OrderByDescending(x => x.Count)
+                .ToList();
+
+            Console.WriteLine();
+            Console.WriteLine("-- Referrers --");
+            foreach (var item in groupByReferrer)
+            {
+                Console.WriteLine($"{item.Count} \t {item.Referrer}");
+            }
+
+            var groupByUserAgents = notCrawlers.GroupBy(x => x.UserAgent)
+                .Select(x => new {UserAgent = x.Key, Count = x.Count()})
+                .OrderByDescending(x => x.Count)
+                .ToList();
+
+            Console.WriteLine();
+            Console.WriteLine("-- User Agents --");
+            foreach (var item in groupByUserAgents)
+            {
+                Console.WriteLine($"{item.Count} \t {item.UserAgent}");
+            }
+
+            var groupCrawlersByUserAgents = crawlers.GroupBy(x => x.UserAgent)
+                .Select(x => new {UserAgent = x.Key, Count = x.Count()})
+                .OrderByDescending(x => x.Count)
+                .ToList();
+
+            Console.WriteLine();
+            WriteLine("-- User Agents (Crawlers) --", ConsoleColor.DarkYellow);
+            foreach (var item in groupCrawlersByUserAgents)
+            {
+                Console.WriteLine($"{item.Count} \t {item.UserAgent}");
+            }
+        }
+
         private static void Referrers(List<LogItem> contentNotCrawlers)
         {
             Console.WriteLine("-- Referrers --");
@@ -74,7 +157,7 @@ namespace NginxLogAnalytics
 
             foreach (var referrer in referrers)
             {
-                Console.WriteLine($"{referrer.Count} - {referrer.Referrer}");
+                Console.WriteLine($"{referrer.Count} \t {referrer.Referrer}");
             }
         }
 

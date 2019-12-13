@@ -6,6 +6,14 @@ facebookexternalhit
 Go-http-client
 Apache-HttpClient
 Google Favicon
-python-requests
- (+https
+python
+ (http
+ (+http
+; +http
+; http
+;++http
 Test Certificate Info
+Headless
+axios
+curl/
+libwww-perl
