@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,6 +12,7 @@ namespace NginxLogAnalytics
     public class LogParser
     {
         private readonly string _path;
+        private readonly Regex _splitRegex = new Regex(" \\| ", RegexOptions.Compiled);
 
         public LogParser(string path)
         {
@@ -34,7 +36,7 @@ namespace NginxLogAnalytics
 
         private LogItem ProcessLine(string line)
         {
-            var parts = line.Split('|');
+            var parts = _splitRegex.Split(line);
 
             if (parts.Length != 8)
             {
