@@ -4,8 +4,6 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace NginxLogAnalytics
 {
@@ -19,14 +17,14 @@ namespace NginxLogAnalytics
             _path = path;
         }
 
-        public async Task<List<LogItem>> ParseAsync(CancellationToken cancellationToken = new CancellationToken())
+        public List<LogItem> Parse()
         {
             List<LogItem> items = new List<LogItem>();
             var files = Directory.GetFiles(_path, "access.log*", SearchOption.TopDirectoryOnly);
             foreach (var file in files)
             {
                 Console.WriteLine($"Processing file {Path.GetFileName(file)}...");
-                foreach (var line in await File.ReadAllLinesAsync(file, cancellationToken))
+                foreach (var line in File.ReadAllLines(file))
                 {
                     items.Add(ProcessLine(line));
                 }
@@ -45,14 +43,31 @@ namespace NginxLogAnalytics
             }
 
             var logItem = new LogItem();
-            
+
+            var responseCode = ParseInt(parts[3]);
+            if (responseCode == 0)
+            {
+                // broken request
+                //https://stackoverflow.com/questions/9791684/what-is-http-status-code-000
+                // https://www.reddit.com/r/nginx/comments/73so8r/access_log_shows_http_response_code_000_with_0/dnul7da/
+                
+                logItem.Method = "-";
+                logItem.Protocol = "-";
+                logItem.RequestUrl = "-";
+                responseCode = 500;
+            }
+            else
+            {
+                var request = ParseRequest(parts[2]);
+                logItem.Method = request.Method;
+                logItem.RequestUrl = request.Url;
+                logItem.Protocol = request.Protocol;
+            }
+
             logItem.Time = ParseDateTime(parts[0]);
             logItem.RemoteAddress = parts[1].Trim();
-            var request = ParseRequest(parts[2]);
-            logItem.Method = request.Method;
-            logItem.RequestUrl = request.Url;
-            logItem.Protocol = request.Protocol;
-            logItem.ResponseCode = (HttpStatusCode)ParseInt(parts[3]);
+            
+            logItem.ResponseCode = (HttpStatusCode)responseCode;
             logItem.BodySentBytes = ParseInt(parts[4]);
             logItem.Referrer = parts[5].Trim();
             logItem.UserAgent = parts[6].Trim();

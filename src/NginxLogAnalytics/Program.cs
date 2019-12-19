@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
-using System.Threading;
 
 namespace NginxLogAnalytics
 {
@@ -19,7 +18,7 @@ namespace NginxLogAnalytics
             _crawlerUserAgents = File.ReadAllLines(config.CrawlerUserAgentsFilePath);
             
             var parser = new LogParser(config.LogFilesFolderPath);
-            var items = parser.ParseAsync(CancellationToken.None).Result;
+            var items = parser.Parse();
 
             if (args.Length == 1)
             {
