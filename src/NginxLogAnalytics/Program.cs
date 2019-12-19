@@ -53,13 +53,13 @@ namespace NginxLogAnalytics
 
             ShowByWeek(contentNotCrawlers);
 
-            Console.WriteLine("-- Today's Top 10 --");
+            Console.WriteLine("-- Today's Top 15 --");
             var result = contentNotCrawlers
                 .Where(x => x.Time.Date == DateTime.UtcNow.Date)
                 .GroupBy(x => x.NormalizedRequestUrl)
                 .Select(x => new { Url = x.Key, Count = x.Count(), LogItems = x})
                 .OrderByDescending(x => x.Count)
-                .Take(10);
+                .Take(15);
 
             foreach (var item in result)
             {
