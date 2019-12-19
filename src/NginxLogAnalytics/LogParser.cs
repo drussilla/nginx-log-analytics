@@ -25,6 +25,7 @@ namespace NginxLogAnalytics
             var files = Directory.GetFiles(_path, "access.log*", SearchOption.TopDirectoryOnly);
             foreach (var file in files)
             {
+                Console.WriteLine($"Processing file {Path.GetFileName(file)}...");
                 foreach (var line in await File.ReadAllLinesAsync(file, cancellationToken))
                 {
                     items.Add(ProcessLine(line));
