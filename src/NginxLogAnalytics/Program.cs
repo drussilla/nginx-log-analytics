@@ -20,8 +20,25 @@ namespace NginxLogAnalytics
             var parser = new LogParser(config.LogFilesFolderPath);
             var items = parser.Parse();
 
-            if (args.Length == 1)
+            if (args.Length >= 1)
             {
+                if (args.Length >= 2)
+                {
+                    try
+                    {
+                        var dateLimit = DateTime.Parse(args[1]);
+                        Console.WriteLine($"Data limited to {dateLimit.Date:yyyy-MM-dd}");
+                        items = items.Where(x => x.Time.Date == dateLimit.Date).ToList();
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(
+                            $"Error: Please specify date as a second parameter in the yyyy-MM-dd format. Details: {e.Message}");
+                        return;
+                    }
+                    
+                }
+
                 ShowUrlDetails(items, args[0]);
                 return;
             }
@@ -108,41 +125,25 @@ namespace NginxLogAnalytics
                 Console.Write($" {item.Count}; ");
             }
             Console.WriteLine();
+            
+            DisplayGroupBy(notCrawlers, x => x.Referrer, "Referrers", ConsoleColor.DarkGreen);
+            DisplayGroupBy(notCrawlers, x => x.RemoteAddress, "IP Address", ConsoleColor.DarkGreen);
+            DisplayGroupBy(notCrawlers, x => x.UserAgent, "User Agents", ConsoleColor.DarkGreen);
+            DisplayGroupBy(crawlers, x => x.UserAgent, "User Agents (Crawlers)", ConsoleColor.DarkYellow);
+        }
 
-            var groupByReferrer = notCrawlers.GroupBy(x => x.Referrer)
-                .Select(x => new {Referrer = x.Key, Count = x.Count()})
+        private static void DisplayGroupBy(List<LogItem> items, Func<LogItem, object> groupBy, string name, ConsoleColor color)
+        {
+            var groupCrawlersByUserAgents = items.GroupBy(groupBy)
+                .Select(x => new { Item = x.Key, Count = x.Count() })
                 .OrderByDescending(x => x.Count)
                 .ToList();
 
             Console.WriteLine();
-            Console.WriteLine("-- Referrers --");
-            foreach (var item in groupByReferrer)
-            {
-                Console.WriteLine($"{item.Count} \t {item.Referrer}");
-            }
-
-            var groupByUserAgents = notCrawlers.GroupBy(x => x.UserAgent)
-                .Select(x => new {UserAgent = x.Key, Count = x.Count()})
-                .OrderByDescending(x => x.Count)
-                .ToList();
-
-            Console.WriteLine();
-            Console.WriteLine("-- User Agents --");
-            foreach (var item in groupByUserAgents)
-            {
-                Console.WriteLine($"{item.Count} \t {item.UserAgent}");
-            }
-
-            var groupCrawlersByUserAgents = crawlers.GroupBy(x => x.UserAgent)
-                .Select(x => new {UserAgent = x.Key, Count = x.Count()})
-                .OrderByDescending(x => x.Count)
-                .ToList();
-
-            Console.WriteLine();
-            WriteLine("-- User Agents (Crawlers) --", ConsoleColor.DarkYellow);
+            WriteLine($"-- {name} --", color);
             foreach (var item in groupCrawlersByUserAgents)
             {
-                Console.WriteLine($"{item.Count} \t {item.UserAgent}");
+                Console.WriteLine($"{item.Count} \t {item.Item}");
             }
         }
 
