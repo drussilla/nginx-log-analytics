@@ -48,7 +48,7 @@ namespace NginxLogAnalytics
             if (responseCode == 0)
             {
                 // broken request
-                //https://stackoverflow.com/questions/9791684/what-is-http-status-code-000
+                // https://stackoverflow.com/questions/9791684/what-is-http-status-code-000
                 // https://www.reddit.com/r/nginx/comments/73so8r/access_log_shows_http_response_code_000_with_0/dnul7da/
                 
                 logItem.Method = "-";

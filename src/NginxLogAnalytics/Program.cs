@@ -84,7 +84,7 @@ namespace NginxLogAnalytics
 
             foreach (var item in result)
             {
-                Console.WriteLine($"{item.Count} - {item.Url}");
+                Console.WriteLine($"{item.Count} \t {item.Url}");
             }
 
             Console.WriteLine();
@@ -152,20 +152,6 @@ namespace NginxLogAnalytics
             }
         }
 
-        private static void Referrers(List<LogItem> contentNotCrawlers)
-        {
-            Console.WriteLine("-- Referrers --");
-            var referrers = contentNotCrawlers
-                .GroupBy(x => x.Referrer)
-                .Select(x => new {Referrer = x.Key, Count = x.Count()})
-                .OrderByDescending(x => x.Count).ToList();
-
-            foreach (var referrer in referrers)
-            {
-                Console.WriteLine($"{referrer.Count} \t {referrer.Referrer}");
-            }
-        }
-
         private static void Write(string text, ConsoleColor color)
         {
             var defColor = Console.ForegroundColor;
@@ -202,7 +188,7 @@ namespace NginxLogAnalytics
         {
             Console.WriteLine("-- Last 7 days --");
             var last7Days = items
-                .Where(x => x.Time >= DateTime.UtcNow.AddDays(-7))
+                .Where(x => x.Time.Date >= DateTime.UtcNow.AddDays(-6).Date)
                 .GroupBy(x => x.Time.Date)
                 .OrderBy(x => x.Key)
                 .Select(x =>  (x.Key.ToString("MM-dd"), x.Count()))
