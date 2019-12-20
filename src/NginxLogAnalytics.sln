@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29411.108
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NginxLogAnalytics", "NginxLogAnalytics\NginxLogAnalytics.csproj", "{F28FBDE5-2F5C-4F82-93C9-F672F08F860A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NginxLogAnalytics", "NginxLogAnalytics\NginxLogAnalytics.csproj", "{F28FBDE5-2F5C-4F82-93C9-F672F08F860A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test.NginxLogAnalytics", "Test.NginxLogAnalytics\Test.NginxLogAnalytics.csproj", "{89FD2A71-BB5A-4516-B214-C4AD81581124}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{F28FBDE5-2F5C-4F82-93C9-F672F08F860A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F28FBDE5-2F5C-4F82-93C9-F672F08F860A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F28FBDE5-2F5C-4F82-93C9-F672F08F860A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{89FD2A71-BB5A-4516-B214-C4AD81581124}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{89FD2A71-BB5A-4516-B214-C4AD81581124}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{89FD2A71-BB5A-4516-B214-C4AD81581124}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{89FD2A71-BB5A-4516-B214-C4AD81581124}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

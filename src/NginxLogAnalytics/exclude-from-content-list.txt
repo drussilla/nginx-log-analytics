@@ -1,0 +1,19 @@
+// The system will check Request Url (normalized version) against this list of rules and exlude each matched log item from the "content" list (will be exluded from stats)
+// first character of the rule represents check operation
+// = - Equals()
+// ^ - StartsWith()
+// & - EndsWith()
+// ~ - Contains()
+// All rules are case insensetive (StringComparison.OrdinalIgnoreCase)
+
+=/feed
+^/wp-content
+^/favicon
+^/site.webmanifest
+^/comment.aspx
+^/comment-submitted
+^/fonts/
+^/robots.txt
+$.png
+$.svg
+$.jpg

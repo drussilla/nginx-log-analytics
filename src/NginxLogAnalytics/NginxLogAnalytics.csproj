@@ -13,7 +13,7 @@
     <None Update="ingore-user-agents.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="not-content-list.txt">
+    <None Update="exclude-from-content-list.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

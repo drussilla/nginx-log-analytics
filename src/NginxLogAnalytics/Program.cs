@@ -5,6 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using NginxLogAnalytics.ContentMatching;
+using NginxLogAnalytics.Utils;
 
 namespace NginxLogAnalytics
 {
@@ -14,6 +16,9 @@ namespace NginxLogAnalytics
         {
             Console.OutputEncoding = Encoding.UTF8;
             var config = Config.Load("config.json");
+
+            var excludeContentListParser = new ContentExcludeListParser(new FileSystem());
+            _contentMatcher = new ContentMatcher(excludeContentListParser.Parse(config.ExcludeFromContentFilePath));
 
             _crawlerUserAgents = File.ReadAllLines(config.CrawlerUserAgentsFilePath);
             
@@ -46,7 +51,7 @@ namespace NginxLogAnalytics
             var contentNotCrawlers = items
                 .Where(x => 
                     !IsCrawler(x)
-                    && IsPages(x) 
+                    && IsContent(x) 
                     && (int)x.ResponseCode < 400 && x.ResponseCode != HttpStatusCode.Moved
                     && x.Referrer != "https://druss.co/xmlrpc.php").ToList();
 
@@ -239,23 +244,13 @@ namespace NginxLogAnalytics
             }
         }
 
-        private static bool IsPages(LogItem logItem)
+        private static bool IsContent(LogItem logItem)
         {
-            return !logItem.NormalizedRequestUrl.Equals("/feed", StringComparison.OrdinalIgnoreCase) &&
-                   !logItem.NormalizedRequestUrl.StartsWith("/wp-content") &&
-                   !logItem.NormalizedRequestUrl.StartsWith("/favicon") &&
-                   !logItem.NormalizedRequestUrl.StartsWith("/site.webmanifest") &&
-                   !logItem.NormalizedRequestUrl.StartsWith("/comment.aspx") &&
-                   !logItem.NormalizedRequestUrl.StartsWith("/comment-submitted") &&
-                   !logItem.NormalizedRequestUrl.StartsWith("/fonts/") &&
-                   !logItem.NormalizedRequestUrl.StartsWith("/robots.txt") &&
-                   !logItem.NormalizedRequestUrl.EndsWith(".png") &&
-                   !logItem.NormalizedRequestUrl.EndsWith(".svg") &&
-                   !logItem.NormalizedRequestUrl.EndsWith(".jpg")
-                ;
+            return _contentMatcher.IsContent(logItem.NormalizedRequestUrl);
         }
 
         private static string[] _crawlerUserAgents;
+        private static ContentMatcher _contentMatcher;
 
         private static bool IsCrawler(LogItem logItem)
         {
