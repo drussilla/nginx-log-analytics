@@ -1,5 +1,6 @@
 # nginx-log-analytics
 Generate views report in the console based on nginx access log files.
+![alt text](https://github.com/drussilla/nginx-log-analytics/workflows/Build%20and%20Test%20Solution/badge.svg "Build status")
 
 ![alt text](https://github.com/drussilla/nginx-log-analytics/raw/master/example.PNG "Output example")
 
