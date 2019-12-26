@@ -17,3 +17,5 @@ Headless
 axios
 curl/
 libwww-perl
+Chrome-Lighthouse
+validator
