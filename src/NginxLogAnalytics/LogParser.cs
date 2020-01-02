@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Net;
+using System.Net.WebSockets;
 using System.Text.RegularExpressions;
 
 namespace NginxLogAnalytics
@@ -100,13 +101,23 @@ namespace NginxLogAnalytics
 
         private (string Method, string Url, string Protocol) ParseRequest(string request)
         {
-            var parts = request.Trim().Split(' ');
-            if (parts.Length != 3)
+            var trimmed = request.Trim();
+            var firstSpace = trimmed.IndexOf(' ');
+            var lastSpace = trimmed.LastIndexOf(' ');
+            if (firstSpace == -1 ||
+                lastSpace == -1 ||
+                firstSpace >= lastSpace ||
+                firstSpace == 0 || 
+                lastSpace == trimmed.Length - 1)
             {
-                throw new FormatException("Wrong request format! Should be the following: 'Method Url Protocol'");
+                throw new FormatException($"Wrong request format! Should be the following: 'Method Url Protocol', but got: '{request}'" );
             }
 
-            return (parts[0].Trim(), WebUtility.UrlDecode(parts[1].Trim()), parts[2].Trim());
+            var method = trimmed.Substring(0, firstSpace);
+            var url = trimmed.Substring(firstSpace + 1, lastSpace - firstSpace - 1);
+            var protocol = trimmed.Substring(lastSpace + 1, trimmed.Length - lastSpace - 1);
+
+            return (method.Trim(), WebUtility.UrlDecode(url.Trim()), protocol.Trim());
         }
 
         private static DateTime ParseDateTime(string timeString)
