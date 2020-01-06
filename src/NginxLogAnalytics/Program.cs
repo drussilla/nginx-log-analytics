@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using Microsoft.Extensions.Configuration;
 using NginxLogAnalytics.ContentMatching;
 using NginxLogAnalytics.Utils;
 
@@ -15,8 +16,13 @@ namespace NginxLogAnalytics
         static void Main(string[] args)
         {
             Console.OutputEncoding = Encoding.UTF8;
-            var config = Config.Load("config.json");
 
+            var configuration = new ConfigurationBuilder();
+            configuration.AddJsonFile("config.json", false, false);
+            configuration.AddCommandLine(args);
+            
+            var config = configuration.Build().Get<Config>();
+            
             var excludeContentListParser = new ContentExcludeListParser(new FileSystem());
             _contentMatcher = new ContentMatcher(excludeContentListParser.Parse(config.ExcludeFromContentFilePath));
 
@@ -25,15 +31,14 @@ namespace NginxLogAnalytics
             var parser = new LogParser(config.LogFilesFolderPath);
             var items = parser.Parse();
 
-            if (args.Length >= 1)
+            if (!string.IsNullOrWhiteSpace(config.Url))
             {
-                if (args.Length >= 2)
+                if (config.Date != null)
                 {
                     try
                     {
-                        var dateLimit = DateTime.Parse(args[1]);
-                        Console.WriteLine($"Data limited to {dateLimit.Date:yyyy-MM-dd}");
-                        items = items.Where(x => x.Time.Date == dateLimit.Date).ToList();
+                        Console.WriteLine($"Data limited to {config.Date.Value.Date:yyyy-MM-dd}");
+                        items = items.Where(x => x.Time.Date == config.Date.Value.Date).ToList();
                     }
                     catch (Exception e)
                     {
@@ -41,10 +46,9 @@ namespace NginxLogAnalytics
                             $"Error: Please specify date as a second parameter in the yyyy-MM-dd format. Details: {e.Message}");
                         return;
                     }
-                    
                 }
 
-                ShowUrlDetails(items, args[0]);
+                ShowUrlDetails(items, config.Url);
                 return;
             }
 
@@ -68,15 +72,21 @@ namespace NginxLogAnalytics
 
             Console.WriteLine();
 
-            Today(contentNotCrawlers);
-
             ShowLastSevenDays(contentNotCrawlers);
 
             ShowByWeek(contentNotCrawlers);
 
-            Console.WriteLine("-- Today's Top 15 --");
+            var date = DateTime.UtcNow;
+            if (config.Date.HasValue)
+            {
+                date = config.Date.Value.AddHours(23).AddMinutes(59).AddSeconds(59).AddMilliseconds(999);
+            }
+
+            DayStats(date, contentNotCrawlers);
+
+            Console.WriteLine($"-- {date:yyyy-MM-dd}'s Top 15 --");
             var result = contentNotCrawlers
-                .Where(x => x.Time.Date == DateTime.UtcNow.Date)
+                .Where(x => x.Time.Date == date.Date)
                 .GroupBy(x => x.NormalizedRequestUrl)
                 .Select(x => new { Url = x.Key, Count = x.Count(), LogItems = x})
                 .OrderByDescending(x => x.Count)
@@ -168,19 +178,19 @@ namespace NginxLogAnalytics
             Console.ForegroundColor = defColor;
         }
 
-        private static void Today(List<LogItem> contentNotCrawlers)
+        private static void DayStats(DateTime day, List<LogItem> contentNotCrawlers)
         {
-            var todayItems = contentNotCrawlers.Count(x => x.Time.Date == DateTime.UtcNow.Date);
-            var yesterday = DateTime.UtcNow.AddDays(-1);
-            var equivalentYesterdayItems = contentNotCrawlers.Count(x => x.Time >= yesterday.Date && x.Time <= yesterday);
-            Console.Write($"-- Today: {todayItems} ");
+            var dayItems = contentNotCrawlers.Count(x => x.Time.Date == day.Date);
+            var theDayBefore = day.AddDays(-1);
+            var equivalentTheDayBeforeItems = contentNotCrawlers.Count(x => x.Time >= theDayBefore.Date && x.Time <= theDayBefore);
+            Console.Write($"-- {day:yyyy-MM-dd}: {dayItems} ");
 
-            var diff = todayItems - equivalentYesterdayItems;
+            var diff = dayItems - equivalentTheDayBeforeItems;
             var defaultColor = Console.ForegroundColor;
             Console.ForegroundColor = diff > 0 ? ConsoleColor.DarkGreen : ConsoleColor.DarkRed;
             Console.Write((diff > 0 ? "+" : "") + diff);
             Console.ForegroundColor = defaultColor;
-            Console.WriteLine($" ({equivalentYesterdayItems})");
+            Console.WriteLine($" ({equivalentTheDayBeforeItems})");
             Console.WriteLine();
         }
 

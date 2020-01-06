@@ -1,5 +1,4 @@
-﻿using System.IO;
-using System.Text.Json;
+﻿using System;
 
 namespace NginxLogAnalytics
 {
@@ -8,15 +7,7 @@ namespace NginxLogAnalytics
         public string LogFilesFolderPath { get; set; }
         public string CrawlerUserAgentsFilePath { get; set; }
         public string ExcludeFromContentFilePath { get; set; }
-
-        public static Config Load(string path)
-        {
-            if (!File.Exists(path))
-            {
-                throw new FileNotFoundException($"Config doesn't exists at {path}.");
-            }
-
-            return JsonSerializer.Deserialize<Config>(File.ReadAllText(path));
-        }
+        public DateTime? Date { get; set; }
+        public string Url { get; set; }
     }
 }
