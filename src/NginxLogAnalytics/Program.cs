@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -22,7 +23,7 @@ namespace NginxLogAnalytics
             Console.OutputEncoding = Encoding.UTF8;
 
             var configuration = new ConfigurationBuilder();
-            configuration.AddJsonFile("config.json", false, false);
+            configuration.AddJsonFile(Path.Combine(Directory.GetCurrentDirectory(), "config.json"), false, false);
             configuration.AddCommandLine(args);
             
             var config = configuration.Build().Get<Config>();

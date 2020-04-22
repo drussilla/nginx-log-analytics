@@ -1,1 +1,1 @@
-dotnet publish src/NginxLogAnalytics/NginxLogAnalytics.csproj -c Release -o %~DP0Release -r linux-x64 --no-self-contained
+dotnet publish src/NginxLogAnalytics/NginxLogAnalytics.csproj -c Release -o %~DP0Release -r linux-x64 --no-self-contained -p:PublishSingleFile=true
