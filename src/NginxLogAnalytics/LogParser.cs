@@ -102,11 +102,19 @@ namespace NginxLogAnalytics
         private (string Method, string Url, string Protocol) ParseRequest(string request)
         {
             var trimmed = request.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed))
+            {
+                return (null, null, null);
+            }
+
             var firstSpace = trimmed.IndexOf(' ');
             var lastSpace = trimmed.LastIndexOf(' ');
-            if (firstSpace == -1 ||
-                lastSpace == -1 ||
-                firstSpace >= lastSpace ||
+            if (firstSpace == -1 && lastSpace == -1)
+            {
+                return (null, null, null);
+            }
+
+            if (firstSpace >= lastSpace ||
                 firstSpace == 0 || 
                 lastSpace == trimmed.Length - 1)
             {
