@@ -57,7 +57,7 @@ namespace NginxLogAnalytics
                 logItem.RequestUrl = "-";
                 responseCode = 500;
             }
-            else
+            else if (!string.IsNullOrWhiteSpace(parts[2]))
             {
                 var request = ParseRequest(parts[2]);
                 logItem.Method = request.Method;
