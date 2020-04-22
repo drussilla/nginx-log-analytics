@@ -22,6 +22,9 @@ namespace NginxLogAnalytics
             get { return _normalizedRequestUrl ??= Normalize(RequestUrl); }
         }
 
+        public bool ShouldIgnore { get; set; }
+        public string IgnoreMatch { get; set; }
+
         private string Normalize(string requestUrl)
         {
             if (string.IsNullOrWhiteSpace(requestUrl))

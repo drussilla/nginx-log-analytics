@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Net;
-using System.Net.WebSockets;
 using System.Text.RegularExpressions;
 
 namespace NginxLogAnalytics
@@ -11,11 +10,14 @@ namespace NginxLogAnalytics
     public class LogParser
     {
         private readonly string _path;
-        private readonly Regex _splitRegex = new Regex(" \\| ", RegexOptions.Compiled);
+        private readonly Regex _splitRegex = new Regex(" \\| ", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        private static string[] _crawlerUserAgents;
 
-        public LogParser(string path)
+
+        public LogParser(string path, string ignoredUserAgentsFilePath)
         {
             _path = path;
+            _crawlerUserAgents = File.ReadAllLines(ignoredUserAgentsFilePath);
         }
 
         public List<LogItem> Parse()
@@ -73,8 +75,35 @@ namespace NginxLogAnalytics
             logItem.Referrer = parts[5].Trim();
             logItem.UserAgent = parts[6].Trim();
             logItem.RequestTime = ParseFloat(parts[7]);
+            
+            var ignoreCheckResult = IsInIgnoreList(logItem.UserAgent);
+            logItem.ShouldIgnore = ignoreCheckResult.isIgnored;
+            logItem.IgnoreMatch = ignoreCheckResult.match;
 
             return logItem;
+        }
+
+        private static (bool isIgnored, string match) IsInIgnoreList(string userAgent)
+        {
+            if (string.IsNullOrWhiteSpace(userAgent))
+            {
+                return (true, null);
+            }
+
+            if (userAgent == "-")
+            {
+                return (true, "-");
+            }
+
+            for (int i = 0; i < _crawlerUserAgents.Length; i++)
+            {
+                if (userAgent.IndexOf(_crawlerUserAgents[i], StringComparison.OrdinalIgnoreCase) != -1)
+                {
+                    return (true, _crawlerUserAgents[i]);
+                }
+            }
+
+            return (false, null);
         }
 
         private static int ParseInt(string str)

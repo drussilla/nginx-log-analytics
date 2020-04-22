@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -15,6 +15,10 @@ namespace NginxLogAnalytics
     {
         static void Main(string[] args)
         {
+            Stopwatch elapsedParsing = new Stopwatch();
+            Stopwatch elapsedProcessing = new Stopwatch();
+
+            elapsedParsing.Start();
             Console.OutputEncoding = Encoding.UTF8;
 
             var configuration = new ConfigurationBuilder();
@@ -26,10 +30,9 @@ namespace NginxLogAnalytics
             var excludeContentListParser = new ContentExcludeListParser(new FileSystem());
             _contentMatcher = new ContentMatcher(excludeContentListParser.Parse(config.ExcludeFromContentFilePath));
 
-            _crawlerUserAgents = File.ReadAllLines(config.CrawlerUserAgentsFilePath);
-            
-            var parser = new LogParser(config.LogFilesFolderPath);
+            var parser = new LogParser(config.LogFilesFolderPath, config.CrawlerUserAgentsFilePath);
             var items = parser.Parse();
+            elapsedParsing.Stop();
 
             if (!string.IsNullOrWhiteSpace(config.Url))
             {
@@ -52,16 +55,20 @@ namespace NginxLogAnalytics
                 return;
             }
 
+            elapsedProcessing.Start();
+            //IgnoreStatistics(items);
+            //return;
             var contentNotCrawlers = items
                 .Where(x => 
-                    !IsCrawler(x)
+                    !x.ShouldIgnore
                     && IsContent(x) 
                     && (int)x.ResponseCode < 400 && x.ResponseCode != HttpStatusCode.Moved
-                    && x.Referrer != "https://druss.co/xmlrpc.php").ToList();
+                    && x.Referrer != "https://druss.co/xmlrpc.php")
+                .ToList();
 
             var notFoundItems = items
                 .Count(x => x.ResponseCode == HttpStatusCode.NotFound);
-            var crawlers = items.Count(IsCrawler);
+            var crawlers = items.Count(x => x.ShouldIgnore);
 
             Console.Write($"Total: {items.Count} Crawlers: ");
             Write(crawlers.ToString(), ConsoleColor.DarkYellow);
@@ -97,8 +104,31 @@ namespace NginxLogAnalytics
                 Console.WriteLine($"{item.Count} \t {item.Url}");
             }
 
+            elapsedProcessing.Stop();
+
             Console.WriteLine();
+            Console.WriteLine("Elapsed parsing: " + elapsedParsing.Elapsed.TotalSeconds + "s");
+            Console.WriteLine("Elapsed processing: " + elapsedProcessing.Elapsed.TotalSeconds + "s");
+            Console.WriteLine("Total: " + (elapsedParsing.Elapsed.TotalSeconds + elapsedProcessing.Elapsed.TotalSeconds) + "s");
             //Referrers(contentNotCrawlers);
+        }
+
+        private static void IgnoreStatistics(List<LogItem> items)
+        {
+            // Check what is the most ignored items, 
+            // update list in the same order to get the best performance
+            var ignored = items.Where(x => x.ShouldIgnore)
+                .GroupBy(x => x.IgnoreMatch)
+                .Select(x => new {Match = x.Key, Total = x.Count(), SubMatch = x.GroupBy(y => y.UserAgent).Select(y => new { Total = y.Count(), Mathc = y.Key})})
+                .OrderByDescending(x => x.Total);
+            foreach (var item in ignored)
+            {
+                Console.WriteLine($"{item.Total}\t\t{item.Match}");
+                foreach (var subItem in item.SubMatch.OrderByDescending(x => x.Total))
+                {
+                    Console.WriteLine($"--{subItem.Total}\t\t{subItem.Mathc}");
+                }
+            }
         }
 
         private static void ShowUrlDetails(List<LogItem> items, string url)
@@ -107,8 +137,8 @@ namespace NginxLogAnalytics
             Console.WriteLine("Details: " + url);
             var filtered = items.Where(x => x.NormalizedRequestUrl.Equals(url, StringComparison.OrdinalIgnoreCase)).ToList();
 
-            var crawlers = filtered.Where(IsCrawler).ToList();
-            var notCrawlers = filtered.Where(x => !IsCrawler(x)).ToList();
+            var crawlers = filtered.Where(x => x.ShouldIgnore).ToList();
+            var notCrawlers = filtered.Where(x => !x.ShouldIgnore).ToList();
             Console.Write($"Total: {filtered.Count}");
             Write($" Crawlers: {crawlers.Count}", ConsoleColor.DarkYellow);
             Write($" Users: {notCrawlers.Count}", ConsoleColor.DarkGreen);
@@ -245,25 +275,7 @@ namespace NginxLogAnalytics
             return _contentMatcher.IsContent(logItem.NormalizedRequestUrl);
         }
 
-        private static string[] _crawlerUserAgents;
+        
         private static ContentMatcher _contentMatcher;
-
-        private static bool IsCrawler(LogItem logItem)
-        {
-            if (logItem.UserAgent == "-")
-            {
-                return true;
-            }
-
-            for (int i = 0; i < _crawlerUserAgents.Length; i++)
-            {
-                if (logItem.UserAgent.Contains(_crawlerUserAgents[i], StringComparison.InvariantCultureIgnoreCase))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
     }
 }
