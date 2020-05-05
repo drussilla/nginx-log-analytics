@@ -17,19 +17,6 @@ Generate views report in the console based on nginx access log files.
 access_log /var/ivanderevianko.com/logs/access.log custom;
 ```
 
-# Build nginx-log-analytics
-
-## Prerequesites
-
-- .Net core 3.1 SDK https://dotnet.microsoft.com/download/dotnet-core/3.1
-
-## Publish
-
-Use `publish.cmd` or the following command to create an `linux-x64` executable:
-```
-dotnet publish src/NginxLogAnalytics/NginxLogAnalytics.csproj -c Release -o Release -r linux-x64 --no-self-contained
-```
-
 # Run nginx-log-analytics
 
 ## Configuration
@@ -46,3 +33,24 @@ Edit `config.json` and specify the correct log folder (`LogFilesFolderPath` prop
 Go to release folder: `cd Release`  
 make file executable: `chmod +x NginxLogAnalytics`  
 and run it: `./NginxLogAnalytics`  
+
+## Command line arguments
+
+```
+--Url <url> - Get a detailed overview of the specific URL
+--Date <date> - Show all stats for the specified Date (instead of today's date)
+```
+
+# Build nginx-log-analytics
+
+## Prerequesites
+
+- .Net core 3.1 SDK https://dotnet.microsoft.com/download/dotnet-core/3.1
+
+## Publish
+
+Use `publish.cmd` or the following command to create an `linux-x64` executable:
+```
+dotnet publish src/NginxLogAnalytics/NginxLogAnalytics.csproj -c Release -o Release -r linux-x64 --no-self-contained
+```
+
