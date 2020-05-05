@@ -6,22 +6,24 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using NginxLogAnalytics.ContentMatching;
 using NginxLogAnalytics.Utils;
 
 namespace NginxLogAnalytics
 {
-    class Program
+    public class Program
     {
-        static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
+            Console.OutputEncoding = Encoding.UTF8;
+
             Stopwatch elapsedParsing = new Stopwatch();
             Stopwatch elapsedProcessing = new Stopwatch();
 
             elapsedParsing.Start();
-            Console.OutputEncoding = Encoding.UTF8;
-
+            
             var configuration = new ConfigurationBuilder();
             configuration.AddJsonFile(Path.Combine(Directory.GetCurrentDirectory(), "config.json"), false, false);
             configuration.AddCommandLine(args);
@@ -32,7 +34,7 @@ namespace NginxLogAnalytics
             _contentMatcher = new ContentMatcher(excludeContentListParser.Parse(config.ExcludeFromContentFilePath));
 
             var parser = new LogParser(config.LogFilesFolderPath, config.CrawlerUserAgentsFilePath);
-            var items = parser.Parse();
+            var items = await parser.ParseAsync();
             elapsedParsing.Stop();
 
             if (!string.IsNullOrWhiteSpace(config.Url))
@@ -82,7 +84,7 @@ namespace NginxLogAnalytics
 
             ShowLastSevenDays(contentNotCrawlers);
 
-            ShowByWeek(contentNotCrawlers);
+            ShowLastSevenWeeks(contentNotCrawlers);
 
             var date = DateTime.UtcNow;
             if (config.Date.HasValue)
@@ -240,11 +242,24 @@ namespace NginxLogAnalytics
             Console.WriteLine();
         }
 
-        private static void ShowByWeek(List<LogItem> items)
+        private static void ShowLastSevenWeeks(List<LogItem> items)
         {
-            Console.WriteLine("-- By weeks --");
+            Console.WriteLine("-- Last 7 weeks --");
+            
+            var now = DateTime.UtcNow;
+            var sixWeeksAgo = now.AddDays(-7 * 7);
+            var dayOfWeekSixWeeksAgo = CultureInfo.InvariantCulture.Calendar.GetDayOfWeek(sixWeeksAgo);
+            var daysToMonday = dayOfWeekSixWeeksAgo - DayOfWeek.Monday;
+            if (daysToMonday == -1) // DayOfWeek starts from Sunday = 0
+            {
+                daysToMonday = 7;
+            }
 
-            var weeks = items
+            var firstDayOfTheFirstWeek = new DateTime(sixWeeksAgo.Year, sixWeeksAgo.Month,
+                sixWeeksAgo.Day - daysToMonday, CultureInfo.InvariantCulture.Calendar);
+
+            var last7Weeks = items
+                .Where(x => x.Time.Date >= firstDayOfTheFirstWeek)
                 .GroupBy(x =>
                     CultureInfo.InvariantCulture.Calendar.GetWeekOfYear(x.Time, CalendarWeekRule.FirstFourDayWeek,
                         DayOfWeek.Monday))
@@ -252,22 +267,22 @@ namespace NginxLogAnalytics
                 .Select(x => (title: x.Key.ToString(), count: x.Count()))
                 .ToList();
 
-            PrintChart(weeks);
+            PrintChart(last7Weeks);
 
             Console.WriteLine();
         }
 
-        private static void PrintChart(List<(string title, int count)> weeks)
+        private static void PrintChart(List<(string title, int count)> items)
         {
             var maxBarLength = 80f;
             var barChar = '▄';
-            var maxValue = weeks.Max(x => x.count);
+            var maxValue = items.Max(x => x.count);
             var viewsPerSquare = Math.Ceiling(maxValue / maxBarLength);
-            foreach (var day in weeks)
+            foreach (var item in items)
             {
-                Console.Write($"{day.title} ");
-                var squares = (int) Math.Ceiling(day.count / viewsPerSquare);
-                Console.WriteLine($"{new string(barChar, squares)} {day.count}");
+                Console.Write($"{item.title} ");
+                var squares = (int) Math.Ceiling(item.count / viewsPerSquare);
+                Console.WriteLine($"{new string(barChar, squares)} {item.count}");
             }
         }
 

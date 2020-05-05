@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace NginxLogAnalytics
 {
@@ -20,20 +23,34 @@ namespace NginxLogAnalytics
             _crawlerUserAgents = File.ReadAllLines(ignoredUserAgentsFilePath);
         }
 
-        public List<LogItem> Parse()
+        public async Task<List<LogItem>> ParseAsync()
         {
             List<LogItem> items = new List<LogItem>();
             var files = Directory.GetFiles(_path, "access.log*", SearchOption.TopDirectoryOnly);
-            foreach (var file in files)
-            {
-                Console.WriteLine($"Processing file {Path.GetFileName(file)}...");
-                foreach (var line in File.ReadAllLines(file))
+
+            await Task.WhenAll(
+                from partition in Partitioner.Create(files).GetPartitions(Environment.ProcessorCount)
+                select Task.Run(async delegate
                 {
-                    items.Add(ProcessLine(line));
-                }
-            }
+                    using (partition)
+                    {
+                        while (partition.MoveNext())
+                        {
+                            await ProcessFile(partition.Current, items);
+                        }
+                    }
+                }));
 
             return items;
+        }
+
+        private async Task ProcessFile(string file, List<LogItem> items)
+        {
+            Console.WriteLine($"Processing file {Path.GetFileName(file)}...");
+            foreach (var line in await File.ReadAllLinesAsync(file))
+            {
+                items.Add(ProcessLine(line));
+            }
         }
 
         private LogItem ProcessLine(string line)
