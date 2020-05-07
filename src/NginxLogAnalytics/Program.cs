@@ -138,7 +138,7 @@ namespace NginxLogAnalytics
         {
             Console.WriteLine();
             Console.WriteLine("Details: " + url);
-            var filtered = items.Where(x => x.NormalizedRequestUrl.Equals(url, StringComparison.OrdinalIgnoreCase)).ToList();
+            var filtered = items.Where(x => x.NormalizedRequestUrl?.Equals(url, StringComparison.OrdinalIgnoreCase) ?? false).ToList();
 
             var crawlers = filtered.Where(x => x.ShouldIgnore).ToList();
             var notCrawlers = filtered.Where(x => !x.ShouldIgnore).ToList();
