@@ -54,8 +54,8 @@ namespace NginxLogAnalytics
                     }
                 }
 
+                items = items.Where(x => x.NormalizedRequestUrl?.Equals(config.Url, StringComparison.OrdinalIgnoreCase) ?? false).ToList();
                 ShowUrlDetails(items, config.Url);
-                return;
             }
 
             elapsedProcessing.Start();
@@ -138,11 +138,10 @@ namespace NginxLogAnalytics
         {
             Console.WriteLine();
             Console.WriteLine("Details: " + url);
-            var filtered = items.Where(x => x.NormalizedRequestUrl?.Equals(url, StringComparison.OrdinalIgnoreCase) ?? false).ToList();
-
-            var crawlers = filtered.Where(x => x.ShouldIgnore).ToList();
-            var notCrawlers = filtered.Where(x => !x.ShouldIgnore).ToList();
-            Console.Write($"Total: {filtered.Count}");
+            
+            var crawlers = items.Where(x => x.ShouldIgnore).ToList();
+            var notCrawlers = items.Where(x => !x.ShouldIgnore).ToList();
+            Console.Write($"Total: {items.Count}");
             Write($" Crawlers: {crawlers.Count}", ConsoleColor.DarkYellow);
             Write($" Users: {notCrawlers.Count}", ConsoleColor.DarkGreen);
 
@@ -276,6 +275,12 @@ namespace NginxLogAnalytics
         {
             var maxBarLength = 80f;
             var barChar = '▄';
+
+            if (items.Count == 0)
+            {
+                return;
+            }
+
             var maxValue = items.Max(x => x.count);
             var viewsPerSquare = Math.Ceiling(maxValue / maxBarLength);
             foreach (var item in items)
